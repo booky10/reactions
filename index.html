@@ -64,6 +64,7 @@
 
       document.addEventListener("contextmenu", addClick);
       document.addEventListener("click", addClick);
+      document.addEventListener("keydown", addClick);
 
       function generateTable() {
         if (!cancelClick && new Date().getTime() / 1000 - start > 0) {
