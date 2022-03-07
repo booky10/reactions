@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content=
+  "width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="author" content="booky10">
+  <meta name="description" content="A simple reaction timer test.">
+  <link rel="shortcut icon" type="image/png" href=
+  "../assets/logo.png">
+  <title>booky10 - Reaction Timer</title>
+  <style>
+      body {
+        text-align: center;
+        font-family: "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto",
+          "Helvetica Neue", "Arial", "Noto Sans", "sans-serif",
+          "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+          "Noto Color Emoji";
+
+        color: #e8e6e3;
+
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      table {
+        margin-left: auto;
+        margin-right: auto;
+      }
+  </style>
+  <script async src=
+  '/cdn-cgi/challenge-platform/h/g/scripts/invisible.js'></script>
+</head>
+<body style="background-color: #181a1b">
+  <h1 id="header">Click anywhere on the screen to begin.</h1>
+  <h2 id="passed">Passed Seconds: -</h2><br>
+  <h2 id="missed">Missed Clicks: -</h2>
+  <h2 id="random">Random Clicks: -</h2>
+  <h2 id="success">Successful Clicks: -</h2><br>
+  <h2 id="last">Last Time: -</h2>
+  <h2 id="worst">Worst Time: -</h2>
+  <h2 id="best">Best Time: -</h2>
+  <h2 id="average">Average Time: -</h2>
+  <div id="table-body"></div><br>
+  <button onclick="generateTable()">Generate Table</button> 
+  <script>
+
+      let start,
+        clicks = Array(),
+        flashing,
+        lastFlashing,
+        flashingStart,
+        clickedAt,
+        cancelClick = false;
+
+      const passed = document.getElementById("passed");
+      const missed = document.getElementById("missed");
+      const success = document.getElementById("success");
+      const random = document.getElementById("random");
+      const last = document.getElementById("last");
+      const worst = document.getElementById("worst");
+      const best = document.getElementById("best");
+      const average = document.getElementById("average");
+
+      document.addEventListener("contextmenu", addClick);
+      document.addEventListener("click", addClick);
+
+      function generateTable() {
+        if (!cancelClick && new Date().getTime() / 1000 - start > 0) {
+          document.removeEventListener("contextmenu", addClick);
+          document.removeEventListener("click", addClick);
+          document.body.style.backgroundColor = "#181A1B";
+          cancelClick = true;
+          start = null;
+
+          let currentNumber = 0;
+          let tableHtml =
+            "<table><tr><th>Click Number<\/th><th>Success<\/th><th>Random<\/th><th>Time<\/th><\/tr>";
+
+          clicks.forEach((click) => {
+            tableHtml +=
+              "<tr><td>" +
+              ++currentNumber +
+              "<\/td><td>" +
+              (click.success ? "Yes" : "No") +
+              "<\/td><td>" +
+              (click.random ? "Yes" : "No") +
+              "<\/td><td>" +
+              (click.time ? click.time + "ms" : "-") +
+              "<\/td><\/tr>";
+          });
+
+          document.getElementById("table-body").innerHTML =
+            tableHtml + "<\/table>";
+        }
+      }
+
+      function addClick(event = null) {
+        if (!cancelClick) {
+          if (!start) {
+            start = new Date().getTime() / 1000 + 3;
+            document.body.removeChild(document.getElementById("header"));
+          } else if (flashing) {
+            if (!clickedAt) {
+              clickedAt = new Date().getTime();
+              clicks.push({
+                success: true,
+                random: false,
+                time: clickedAt - flashingStart,
+              });
+            }
+          } else if (flashingStart) {
+            clicks.push({
+              success: false,
+              random: true,
+              time: new Date().getTime() - flashingStart,
+            });
+          } else {
+            clicks.push({ success: false, random: true });
+          }
+
+          if (!event) return;
+          event.preventDefault();
+        } else {
+          cancelClick = false;
+        }
+      }
+
+      setInterval(() => {
+        if (!start) return;
+
+        if (flashing !== lastFlashing) {
+          document.body.style.backgroundColor = flashing
+            ? "#AD2424"
+            : "#181A1B";
+          lastFlashing = flashing;
+        }
+
+        let missedClicks = 0,
+          successClicks = 0,
+          randomClicks = 0,
+          lastTime = 0,
+          worstTime = 0,
+          bestTime = 999999999,
+          averageTime = 0;
+
+        clicks.forEach((click) => {
+          if (click.success) {
+            ++successClicks;
+            lastTime = click.time;
+            averageTime += lastTime;
+            if (lastTime > worstTime) worstTime = lastTime;
+            if (lastTime < bestTime) bestTime = lastTime;
+          } else if (click.random) {
+            ++randomClicks;
+          } else {
+            ++missedClicks;
+          }
+        });
+
+        missed.innerText = "Missed Clicks: " + missedClicks;
+        success.innerText = "Successful Clicks: " + successClicks;
+        random.innerText = "Random Clicks: " + randomClicks;
+
+        if (successClicks > 0) {
+          averageTime /= successClicks;
+
+          last.innerText = "Last Time: " + lastTime + "ms";
+          worst.innerText = "Worst Time: " + worstTime + "ms";
+          best.innerText = "Best Time: " + bestTime + "ms";
+          average.innerText = "Average Time: " + averageTime.toFixed(3) + "ms";
+        }
+
+        const passedSeconds = new Date().getTime() / 1000 - start;
+        passed.innerText = "Passed Seconds: " + passedSeconds.toFixed(3) + "s";
+      }, 10);
+
+      setInterval(() => {
+        if (start && new Date().getTime() / 1000 - start > 0) {
+          if (flashing) {
+            if (
+              Math.random() <= 0.5 &&
+              new Date().getTime() - flashingStart > 300
+            ) {
+              flashing = false;
+              if (!clickedAt) {
+                clicks.push({ success: false, random: false });
+              }
+            }
+          } else if (Math.random() <= 0.15) {
+            flashing = true;
+            clickedAt = null;
+            flashingStart = new Date().getTime();
+          }
+        }
+      }, 250);
+  </script> 
+  <script type="text/javascript">
+  (function(){window['__CF$cv$params']={r:'6e83b4c84aaf99f1',m:'E56Dq0N0G2FNm93x5y1kubNl1F2RZqpHD7_BtivtWE0-1646660041-0-Ae3Zfy8IgrWKFqErmmdVPT/PD2biT9bTarHxb7znFOk0PotCS7WHNKVLXZtxIWOng3VpKm9vTD1cqk16bcx92VBuYg0Og6c4pD+S6NqOa3r5ttrF8+4HxeMvgwye2dteOU70w6N2H6FqNB0B0zh4gfw=',s:[0xe680b8d162,0x4a993676c0],u:'/cdn-cgi/challenge-platform/h/g'}})();
+  </script>
+</body>
+</html>
